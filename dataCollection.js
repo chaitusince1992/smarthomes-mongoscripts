@@ -1,55 +1,23 @@
-'strict';
-
 const testFolder = './';
 const fs = require('fs');
-const util = require('util');
-const path = require('path');
 const es = require('event-stream');
 const homeData = require('./building-meta.js')
-// var mongodb = require('mongodb');
 var mongo = require('./mongo.js');
 var db;
 mongo.getCollection(function (dbs) {
   db = dbs;
-  readFiles2();
+  readFiles();
 }, function () {
   console.log("error connecting to db...")
 })
 
-// lineCount = 0;
-const indexOfBuilding = 1;
+const indexOfBuilding = 3;
 const baseFolder = "building" + indexOfBuilding;
-function readFiles2() {
-
-  // fs.readdir(testFolder, (err, dirArr) => {
-  //   iterateEachDir(dirArr.length, dirArr, testFolder);
-  // });
+function readFiles() {
   let dir = testFolder + baseFolder;
   fs.readdir(dir, (err, filesArr) => {
     iterateEachFile(filesArr.length, filesArr, dir);
   })
-}
-
-function iterateEachDir(j, dirArray, dir) {
-  j--;
-  if (j >= 0) {
-    let subDir;
-    if (dirArray && dirArray[j]) {
-      subDir = dirArray[j];
-    } else {
-      console.log("something is wrong...", dirArray, j);
-    }
-    if (subDir && subDir.indexOf("building") != -1) {
-      // console.log(subDir, "+++++++");
-      fs.readdir(dir + subDir, (err, buildFileArr) => {
-        iterateEachFile(buildFileArr.length, buildFileArr, dir + subDir, j, dirArray, dir);
-      })
-    } else {
-      iterateEachDir(j, dirArray, dir);
-    }
-  } else {
-    console.log("The end");
-  }
 }
 
 let failedCount = 0;
@@ -60,7 +28,7 @@ function iterateEachFile(i, fileArray, fullDir) {
     if (fileArray && fileArray[i]) {
       file = fileArray[i];
     } else {
-      console.log("something is wrong...", fileArray, i);
+      console.log("something is wrong...", i);
     }
     if (file && file.indexOf(".csv") != -1) {
       // console.log(file + "___________");
@@ -78,7 +46,7 @@ function iterateEachFile(i, fileArray, fullDir) {
 
             })
             .on('end', () => {
-              console.log(lineCount);
+              console.log(lineCount, lineStream[1]);
               let dataArray = parseCSV(lineStream);
 
               // dataArray.forEach((d, j) => {
@@ -86,7 +54,8 @@ function iterateEachFile(i, fileArray, fullDir) {
                 process.stdout.clearLine();
                 process.stdout.cursorTo(0);
                 process.stdout.write(`done inserting... ${fullDir}/${file}\n`);
-                iterateEachFile(i, fileArray, fullDir);
+                // iterateEachFile(i, fileArray, fullDir);
+                mapReduceMinute(i, fileArray, fullDir);
               }, () => {
                 console.log(`Failed ${fullDir}/${file}\n`);
                 failedCount++;
@@ -101,12 +70,96 @@ function iterateEachFile(i, fileArray, fullDir) {
 
   } else {
     console.log(`End of files ${fullDir}`);
-    // collectionCount--;
     // its the end
-    // iterateEachDir(j, dirArray, dir);
     console.log(failedCount);
   }
 }
+
+function mapReduceMinute(ind, fileArray, fullDir) {
+  db.collection(baseFolder).mapReduce(
+    function () {
+      var date = new Date(this.timestamp * 1000);
+      date.setHours(date.getHours());
+      today = new Date();
+      var timeBase = Math.floor(date.getTime() / (1000 * 60)) * 60000; // minute
+      // var timeBase = Math.floor(date.getTime() / (1000 * 60 * 60)) * 60000 * 60; // hours
+      // var timeBase = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)) * 60000 * 60 * 24; // days
+      var time = new Date(timeBase);
+      emit(time, {
+        a0: !isNaN(Number(this.a0)) ? this.a0 : 0,
+        a1: !isNaN(Number(this.a1)) ? this.a1 : 0,
+        a2: !isNaN(Number(this.a2)) ? this.a2 : 0,
+        a3: !isNaN(Number(this.a3)) ? this.a3 : 0,
+        a4: !isNaN(Number(this.a4)) ? this.a4 : 0,
+        a5: !isNaN(Number(this.a5)) ? this.a5 : 0,
+        a6: !isNaN(Number(this.a6)) ? this.a6 : 0,
+        a7: !isNaN(Number(this.a7)) ? this.a7 : 0,
+        a8: !isNaN(Number(this.a8)) ? this.a8 : 0,
+        //b3: !isNaN(Number(this.a3)) ? this.a3 : 0,
+        timestamp: this.timestamp
+      });
+    },
+    function (key, values) {
+      //var returnObj = {sum: 0, time: 0};
+      //var sum1 = 0;
+      let objList = [];
+      for (let k in values[0]) {
+        k != 'timestamp' ? objList.push(k) : '';
+      }
+      var returnObj = {};
+      objList.forEach(prop => {
+        let avg = 0;
+        let totalSum = 0;
+        values.forEach((d, i, arr) => {
+          if (i > 1) {
+            let prevNumber = Number(arr[i - 1][prop]);
+            let currNumber = Number(d[prop]);
+            let area = (0.5) * (d.timestamp - arr[i - 1].timestamp) * (prevNumber + currNumber);
+            totalSum = totalSum + area;
+            //}
+          }
+          if (i == arr.length - 1) {
+            let firstTime = arr[0].timestamp ? arr[0].timestamp : arr[1].timestamp;
+            let lastTime = d.timestamp ? d.timestamp : arr[i - 1].timestamp;
+            avg = (lastTime - firstTime) > 0 ? totalSum / (lastTime - firstTime) : 0;
+          }
+
+        })
+        returnObj[prop] = avg;
+      })
+
+      return returnObj;
+    },
+    { out: { inline: 1 } },
+    function (err, docs) {
+      if (err) {
+        throw err;
+      }
+      if (!err) {
+        console.log(docs.length);
+        let allDocs = [];
+        docs.forEach((d, i) => {
+          let pushObj = { ...d.value };
+          pushObj["_id"] = d._id;
+          pushObj["timestamp"] = new Date(d._id).getTime() / 1000;
+          allDocs.push(pushObj);
+          if (i === docs.length - 1) {
+
+            db.collection(baseFolder + "minute").insertMany(allDocs).then(() => {
+              process.stdout.clearLine();
+              process.stdout.cursorTo(0);
+              process.stdout.write(`done mapreduce minute... \n`);
+              iterateEachFile(ind, fileArray, fullDir);
+            }, () => {
+              console.log(`Failed map reduce \n`);
+            })
+          }
+        })
+      }
+    }
+  )
+};
+
 
 
 function parseCSV(lines) {
@@ -138,146 +191,4 @@ function parseCSV(lines) {
   })
   // console.log(buildingData);
   return buildingData;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// fs.readFile('./building0/dataset_2014-10-03.csv', "utf-8",  (e, data) => {
-//   if (e) throw e;
-//   console.log(data);
-// });
-
-
-
-
-// csvData = `timestamp,000D6F0002907BA2,000D6F0002907BC8,000D6F0002907BDF,000D6F0002907BF5,000D6F0002907C89,000D6F0002908150,000D6F0002908162,000D6F00029C506A
-// 1386374137.122849,0.0,0.0,0.0,6.580665311387137,0.0,NULL,12.885029880714516,0.0
-// 1386374138.125722,0.0,2.2675751981909307,0.0,6.580665311387137,0.0,NULL,10.760647597181261,0.0
-// 1386374139.125807,0.0,0.0,0.0,6.580665311387137,0.0,NULL,12.885029880714516,0.0
-// 1386374140.128412,0.0,0.0,0.0,6.580665311387137,0.0,NULL,10.760647597181261,0.0
-// 1386374141.127958,0.0,0.0,0.0,6.580665311387137,0.0,NULL,10.760647597181261,0.0
-// 1386374142.123352,0.0,0.0,0.0,6.580665311387137,0.0,NULL,12.885029880714516,0.0
-// 1386374143.135194,0.0,0.0,0.0,6.580665311387137,0.0,NULL,10.760647597181261,0.0
-// `
-// let buildingData = [];
-// let lines = csvData.split('\n');
-// let headLine = lines[0].split(",");
-// eachLine.forEach((line, i) => {
-//   if (line && i > 0) {
-//     // console.log(line.split(","));
-//     let cells = line.split(",");
-//     let buildObj = {};
-//     headLine.forEach((h, j) => {
-//       // buildingData.push({
-//       buildObj[h] = cells[j];
-//       // })
-//     })
-//     buildingData.push(buildObj);
-//   }
-// })
-// console.log(buildingData);
-
-
-
-
-function tempMethod() {
-
-  fs.readdir(testFolder + file, (err, build) => {
-    // console.log(typeof build, build.length);
-    if (indexTest < 0)
-      doSomething();
-    build.forEach((d, i) => {
-      if (d.indexOf(".csv") != -1 && i < 3) {
-
-        /* let lineStream = [];
-        let lineCount = 0;
-        fs.createReadStream(`${file}/${d}`)
-          .pipe(es.split())
-          .pipe(
-            es.mapSync(line => {
-              lineCount++;
-              lineStream.push(line);
-              // console.log(lineCount,line);
-            })
-              .on('error', err => {
-
-              })
-              .on('end', () => {
-                console.log(lineCount);
-                let dataArray = parseCSV(lineStream);
-
-                // dataArray.forEach((d, j) => {
-                db.collection('test').insertMany(dataArray).then(() => {
-                  // console.log("done inserting...", i, "and " + j + " of ", build.length);
-                  process.stdout.clearLine();
-                  process.stdout.cursorTo(0);
-                  // process.stdout.write(`done inserting...  ${j} of, ${lineCount} and , ${i} file`);
-                  process.stdout.write(`done inserting... ${lineCount}, ${i} file  ${build.length}`);
-                }, () => {
-                  console.log("Failed", i, j, d._id, d.timestamp)
-                })
-                // })
-              })
-          ) */
-        /* fs.readFile(file + "/" + d, "utf-8", (e, data) => {
-          fs.writeFile(file + "/" + "dataset-all.csv", data, e => {
-            console.log("Written to file", i);
-          })
-        }) */
-        fs.createReadStream(`${file}/${d}`)
-          .pipe(es.split())
-          .pipe(
-            es.mapSync(line => {
-              fs.appendFileSync(file + "/" + "a-dataset-all.csv", line + '\n', e => {
-                process.stdout.clearLine();
-                process.stdout.cursorTo(0);
-                process.stdout.write("Written to file", i);
-              })
-            })
-              .on('error', err => {
-
-              })
-              .on('end', () => {
-                console.log("Done...");
-              })
-          )
-        /* fs.readFile(file + "/" + d, "utf-8", (e, data) => {
-          if (e) throw e;
-          let dataArray = parseCSV(data);
-          // console.log(file, d, dataArray.length);
-          // setTimeout(() => {
-          //   console.log("Waited 1 sec", i);
-          // }, 1000);
-          // await db.createCollection("test");
-          dataArray.forEach((d, j) => {
-            db.collection('test').insertOne(d).then(() => {
-              // console.log("done inserting...", i, "and " + j + " of ", build.length);
-              process.stdout.clearLine();
-              process.stdout.cursorTo(0);
-              process.stdout.write(`done inserting..., ${i}, and  ${j} of, ${build.length}`);
-            }, () => {
-              console.log("Failed", i, j, d._id, d.timestamp)
-            })
-          })
-          // db.collection('test').insertMany(dataArray).then(() => {
-          //   console.log("done inserting...", i, " of ", build.length);
-          // }, () => {
-          //   console.log("Failed")
-          // })
-        }); */
-      }
-      // console.log("---------" + d);
-    })
-  })
 }
