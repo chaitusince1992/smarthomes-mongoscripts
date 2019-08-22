@@ -5,7 +5,7 @@ const fs = require('fs');
 const util = require('util');
 const path = require('path');
 const es = require('event-stream');
-
+const homeData = require('./building-meta.js')
 // var mongodb = require('mongodb');
 var mongo = require('./mongo.js');
 var db;
@@ -17,7 +17,8 @@ mongo.getCollection(function (dbs) {
 })
 
 // lineCount = 0;
-const baseFolder = "building0";
+const indexOfBuilding = 1;
+const baseFolder = "building" + indexOfBuilding;
 function readFiles2() {
 
   // fs.readdir(testFolder, (err, dirArr) => {
@@ -111,18 +112,7 @@ function iterateEachFile(i, fileArray, fullDir) {
 function parseCSV(lines) {
   let buildingData = [];
   // let lines = csvData.split('\n');
-  let csvNames = {
-    "timestamp": "timestamp",
-    "000D6F0002906FA7": "a0",
-    "000D6F0002907BA2": "a1",
-    "000D6F0002907BC8": "a2",
-    "000D6F0002907BDF": "a3",
-    "000D6F0002907BF5": "a4",
-    "000D6F0002907C89": "a5",
-    "000D6F0002908150": "a6",
-    "000D6F0002908162": "a7",
-    "000D6F00029C506A": "a8",
-  }
+  let csvNames = homeData["blocks"][indexOfBuilding]
 
 
   let headLine = lines[0].split(",");
