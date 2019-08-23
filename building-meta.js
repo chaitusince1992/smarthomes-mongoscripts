@@ -1,5 +1,7 @@
 var homeData = module.exports = {};
 homeData["blocks"] = [
+
+    //building 0
     {
         "timestamp": "timestamp",
         "000D6F0002906FA7": "a0",
@@ -12,6 +14,8 @@ homeData["blocks"] = [
         "000D6F0002908162": "a7",
         "000D6F00029C506A": "a8",
     },
+
+    //building 1
     {
         "timestamp": "timestamp",
         "000D6F00036BB04C": "a0",
@@ -23,8 +27,9 @@ homeData["blocks"] = [
         "000D6F000353AE51": "a6",
         "000D6F0003562C0F": "a7",
         "000D6F0003562BF6": "a8",
-
     },
+
+    //building 2
     {
         "timestamp": "timestamp",
         "000D6F00028EDD69": "a0",
@@ -37,6 +42,8 @@ homeData["blocks"] = [
         "000D6F0003563110": "a7",
         "000D6F0003563119": "a8"
     },
+
+    // building 3
     {
         "timestamp": "timestamp",
         "000D6F00029C1AE6": "a0",
@@ -48,5 +55,63 @@ homeData["blocks"] = [
         "000D6F0003561744": "a6",
         "000D6F0003561C12": "a7",
         "000D6F00035606C0": "a8"
+    },
+
+    // building 4
+    {
+        "timestamp": "timestamp",
+        "000D6F00029C2AEB": "a0",
+        "000D6F0003561F98": "a1",
+        "000D6F0003562DF4": "a2",
+        "000D6F000353AE48": "a3",
+        "000D6F00029C2934": "a4",
+        "000D6F0003562CA8": "a5",
+        "000D6F0003562D88": "a6",
+        "000D6F0003562C9D": "a7",
+        "000D6F00029C1C2B": "a8",
+    },
+
+    // building 5
+    {
+        "timestamp": "timestamp",
+        "000D6F00029C2918": "a0",
+        "000D6F00029C286E": "a1",
+        "000D6F00029C44E4": "a2",
+        "000D6F00029C46A3": "a3",
+        "000D6F00029C246A": "a4",
+        "000D6F00029C24E1": "a5",
+        "000D6F00029C46A6": "a6",
+        "000D6F00029C271E": "a7",
+        "000D6F00029C46A4": "a8",
+        "000D6F00023A5F99": "a9"
+    },
+
+    // building 6
+    {
+        "timestamp": "timestamp",
+        "000D6F0003562C6E": "a0",
+        "000D6F0003562C89": "a1",
+        "000D6F0003561FAD": "a2",
+        "000D6F0003562D7D": "a3",
+        "000D6F000356311B": "a4",
+        "000D6F000353ACAF": "a5",
+        "000D6F0002907069": "a6",
+        "000D6F00029C2979": "a7",
+        "000D6F000353AC93": "a8",
+    },
+
+    // building 7
+    {
+        "timestamp": "timestamp",
+        "000D6F00029C2542": "a0",
+        "000D6F00036BC42A": "a1",
+        "000D6F0003BD8082": "a2",
+        "000D6F0003BD8C8E": "a3",
+        "000D6F0003BD76C4": "a4",
+        "000D6F0003BD8103": "a5",
+        "000D6F0003BD8293": "a6",
+        "000D6F0003BD6E92": "a7",
+        "000D6F0003B9C636": "a8",
     }
+
 ]

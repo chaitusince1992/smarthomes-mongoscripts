@@ -4,7 +4,7 @@ var mongodb = require('mongodb');
 var MongoClient = mongodb.MongoClient;
 
 mongo.getCollection = function (callbackSuccess, callbackError) {
-    MongoClient.connect("mongodb://localhost:27017/smartgrid", function (err, db) {
+    MongoClient.connect("mongodb://localhost:27017/smartgridnew", function (err, db) {
         if (err) {
             console.dir(err);
             callbackError(err);
