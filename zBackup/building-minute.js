@@ -7,7 +7,7 @@ const path = require('path');
 const es = require('event-stream');
 
 // var mongodb = require('mongodb');
-var mongo = require('./mongo.js');
+var mongo = require('../mongo.js');
 var db;
 mongo.getCollection(function (dbs) {
     db = dbs;
@@ -22,13 +22,13 @@ mongo.getCollection(function (dbs) {
 const baseFolder = "building1";
 
 function readFiles() {
-    db.collection(baseFolder+"minute").mapReduce(
-        function () {
+    db.collection(baseFolder).mapReduce(
+        function () {            
             var date = new Date(this.timestamp * 1000);
             date.setHours(date.getHours());
             today = new Date();
-            //var timeBase = Math.floor(date.getTime() / (1000 * 60)) * 60000; // minute
-            var timeBase = Math.floor(date.getTime() / (1000 * 60 * 60)) * 60000 * 60; // hours
+            var timeBase = Math.floor(date.getTime() / (1000 * 60)) * 60000; // minute
+            // var timeBase = Math.floor(date.getTime() / (1000 * 60 * 60)) * 60000 * 60; // hours
             // var timeBase = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)) * 60000 * 60 * 24; // days
             var time = new Date(timeBase);
             emit(time, {
@@ -78,6 +78,9 @@ function readFiles() {
         },
         { out: { inline: 1 } },
         function (err, docs) {
+            if(err) {
+                throw err;
+            }
             if (!err) {
                 console.log(docs.length, docs[0]);
                 let allDocs = [];
@@ -88,7 +91,7 @@ function readFiles() {
                     allDocs.push(pushObj);
                     if (i === docs.length - 1) {
 
-                        db.collection(baseFolder + "hour").insertMany(allDocs).then(() => {
+                        db.collection(baseFolder + "minute").insertMany(allDocs).then(() => {
                             process.stdout.clearLine();
                             process.stdout.cursorTo(0);
                             process.stdout.write(`done inserting... \n`);
@@ -103,3 +106,13 @@ function readFiles() {
     )
 
 }
+// db.collection(baseFolder).insertMany(dataArray).then(() => {
+//     process.stdout.clearLine();
+//     process.stdout.cursorTo(0);
+//     process.stdout.write(`done inserting... ${fullDir}/${file}\n`);
+//     iterateEachFile(i, fileArray, fullDir);
+// }, () => {
+//     console.log(`Failed ${fullDir}/${file}\n`);
+//     failedCount++;
+//     iterateEachFile(i, fileArray, fullDir);
+// })
