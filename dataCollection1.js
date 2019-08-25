@@ -11,7 +11,7 @@ mongo.getCollection(function (dbs) {
   console.log("error connecting to db...")
 })
 
-const indexOfBuilding = 0;
+const indexOfBuilding = 1;
 const baseFolder = "building" + indexOfBuilding;
 function readFiles() {
   let dir = testFolder + baseFolder;
